@@ -10,12 +10,12 @@ router.post('/', async (req: any, res: any) => {
   try {
     const { imageUrl, style } = req.body;
 
-    // 校验参数
+    // 参数校验，英文提示
     if (!imageUrl || typeof imageUrl !== 'string' || !/^https?:\/\//.test(imageUrl)) {
-      return res.status(400).json({ success: false, error: '参数 imageUrl 无效' });
+      return res.status(400).json({ success: false, error: 'Invalid imageUrl parameter' });
     }
     if (!style || !SUPPORTED_STYLES.includes(style)) {
-      return res.status(400).json({ success: false, error: '仅支持 ghibli 风格' });
+      return res.status(400).json({ success: false, error: 'Only ghibli style is supported' });
     }
 
     // 构建 prompt
@@ -25,7 +25,7 @@ router.post('/', async (req: any, res: any) => {
     // 调用 Segmind API
     const segmindApiKey = process.env.SEGMIND_API_KEY;
     if (!segmindApiKey) {
-      return res.status(500).json({ success: false, error: '未配置 SEGMIND_API_KEY' });
+      return res.status(500).json({ success: false, error: 'SEGMIND_API_KEY is not set' });
     }
 
     const segmindRes = await fetch('https://api.segmind.com/v1/gpt-image-1-edit', {
@@ -46,20 +46,20 @@ router.post('/', async (req: any, res: any) => {
     const contentType = segmindRes.headers.get('content-type') || '';
     if (!segmindRes.ok) {
       const errorText = await segmindRes.text();
-      return res.status(500).json({ success: false, error: `Segmind API 错误: ${errorText}` });
+      return res.status(500).json({ success: false, error: `Segmind API error: ${errorText}` });
     }
     if (!contentType.includes('application/json')) {
-      return res.status(500).json({ success: false, error: 'Segmind API 返回的不是 JSON' });
+      return res.status(500).json({ success: false, error: 'Segmind API did not return JSON' });
     }
 
     const result = await segmindRes.json() as { image?: string };
     if (!result.image) {
-      return res.status(500).json({ success: false, error: 'Segmind API 未返回图片' });
+      return res.status(500).json({ success: false, error: 'Segmind API did not return image' });
     }
 
     return res.json({ success: true, imageUrl: result.image });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message || '服务器错误' });
+    return res.status(500).json({ success: false, error: err.message || 'Server error' });
   }
 });
 
