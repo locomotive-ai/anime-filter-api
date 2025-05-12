@@ -46,23 +46,25 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     });
 
     const contentType = segmindRes.headers.get('content-type') || '';
-    const responseBodyText = await segmindRes.text();
 
     if (!segmindRes.ok) {
-      console.error(`Task ${taskId} - Segmind API !ok: ${segmindRes.status}`, responseBodyText);
+      const errBody = await segmindRes.text();
+      console.error(`Task ${taskId} - Segmind API !ok: ${segmindRes.status}`, errBody);
       throw new Error(`Segmind API error: ${segmindRes.status}`);
     }
 
     if (!contentType.includes('application/json')) {
-      console.error(`Task ${taskId} - Unexpected content-type: ${contentType}`, responseBodyText);
+      const body = await segmindRes.text();
+      console.error(`Task ${taskId} - Unexpected content-type: ${contentType}`, body);
       throw new Error(`Segmind API did not return JSON (got ${contentType})`);
     }
 
+    // 直接使用.json()解析响应体
     let result: any;
     try {
-      result = JSON.parse(responseBodyText);
+      result = await segmindRes.json();
     } catch (e) {
-      console.error(`Task ${taskId} - Failed to parse JSON:`, responseBodyText);
+      console.error(`Task ${taskId} - Failed to parse JSON:`, e);
       throw new Error('Failed to parse JSON from Segmind');
     }
 
