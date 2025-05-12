@@ -53,19 +53,24 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     });
 
     const contentType = segmindRes.headers.get('content-type') || '';
+    let responseBodyText: string | null = null; 
+
     if (!segmindRes.ok) {
-      const errorText = await segmindRes.text();
-      console.error(`Task ${taskId} - Segmind API !ok: Status ${segmindRes.status}, Body: ${errorText}`);
+      responseBodyText = await segmindRes.text();
+      console.error(`---> Task ${taskId} - Segmind API !ok: Status ${segmindRes.status}, Body: ${responseBodyText}`);
       throw new Error(`Segmind API error: Status ${segmindRes.status}`);
     }
     if (!contentType.includes('application/json')) {
-      const errorText = await segmindRes.text();
-      console.error(`Task ${taskId} - Segmind API non-JSON: Content-Type: ${contentType}, Body: ${errorText}`);
+      responseBodyText = responseBodyText ?? await segmindRes.text();
+      console.error(`---> Task ${taskId} - Segmind API non-JSON: Content-Type: ${contentType}, Body: ${responseBodyText}`);
       throw new Error('Segmind API did not return JSON');
     }
 
-    const result = await segmindRes.json() as { image?: string };
+    responseBodyText = responseBodyText ?? await segmindRes.text();
+    const result = JSON.parse(responseBodyText) as { image?: string };
+
     if (!result.image) {
+      console.error(`---> Task ${taskId} - Segmind API JSON missing image field. Body: ${responseBodyText}`);
       throw new Error('Segmind API did not return image');
     }
 
@@ -74,7 +79,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     console.log(`Task ${taskId} completed successfully.`);
 
   } catch (err: any) {
-    console.error(`Task ${taskId} processing failed:`, err);
+    console.error(`---> Task ${taskId} processing failed:`, err);
     tasks[taskId] = { status: 'failed', error: err.message || 'Server error' };
   }
 };
