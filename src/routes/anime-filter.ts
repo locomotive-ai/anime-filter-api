@@ -55,9 +55,12 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     const contentType = segmindRes.headers.get('content-type') || '';
     if (!segmindRes.ok) {
       const errorText = await segmindRes.text();
-      throw new Error(`Segmind API error: ${errorText}`);
+      console.error(`Task ${taskId} - Segmind API !ok: Status ${segmindRes.status}, Body: ${errorText}`);
+      throw new Error(`Segmind API error: Status ${segmindRes.status}`);
     }
     if (!contentType.includes('application/json')) {
+      const errorText = await segmindRes.text();
+      console.error(`Task ${taskId} - Segmind API non-JSON: Content-Type: ${contentType}, Body: ${errorText}`);
       throw new Error('Segmind API did not return JSON');
     }
 
@@ -71,9 +74,8 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     console.log(`Task ${taskId} completed successfully.`);
 
   } catch (err: any) {
-    // Update task status to failed
+    console.error(`Task ${taskId} processing failed:`, err);
     tasks[taskId] = { status: 'failed', error: err.message || 'Server error' };
-    console.error(`Task ${taskId} failed:`, err.message);
   }
 };
 
