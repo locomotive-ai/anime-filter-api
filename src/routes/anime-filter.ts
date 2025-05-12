@@ -41,34 +41,27 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
         negative_prompt: negativePrompt,
         guidance_scale: 5,
         num_inference_steps: 30,
-        response_format: "url" // <- 重点修改
+        response_format: "url" // 返回 JSON 格式
       })
     });
 
     const contentType = segmindRes.headers.get('content-type') || '';
+    const responseBodyText = await segmindRes.text();
 
     if (!segmindRes.ok) {
-      const errBody = await segmindRes.text();
-      console.error(`Task ${taskId} - Segmind API !ok: ${segmindRes.status}`, errBody);
+      console.error(`Task ${taskId} - Segmind API !ok: ${segmindRes.status}`, responseBodyText);
       throw new Error(`Segmind API error: ${segmindRes.status}`);
     }
 
     if (!contentType.includes('application/json')) {
-      const body = await segmindRes.text();
-      console.error(`Task ${taskId} - Unexpected content-type: ${contentType}`, body);
+      console.error(`Task ${taskId} - Unexpected content-type: ${contentType}`, responseBodyText);
       throw new Error(`Segmind API did not return JSON (got ${contentType})`);
     }
 
-    // 直接使用.json()解析响应体
-    let result: any;
-    try {
-      result = await segmindRes.json();
-    } catch (e) {
-      console.error(`Task ${taskId} - Failed to parse JSON:`, e);
-      throw new Error('Failed to parse JSON from Segmind');
-    }
-
+    // ✅ 正确解析 JSON + 类型断言
+    const result = (JSON.parse(responseBodyText)) as { images?: { url?: string }[] };
     const url = result.images?.[0]?.url;
+
     if (!url) {
       console.error(`Task ${taskId} - Missing image URL in response:`, result);
       throw new Error('Segmind API JSON missing image URL');
@@ -94,7 +87,7 @@ router.post('/start-task', async (req: any, res: any) => {
     }
 
     const taskId = uuidv4();
-    processImageWithSegmind(taskId, imageUrl, style); // async task
+    processImageWithSegmind(taskId, imageUrl, style); // 异步启动
 
     return res.json({ success: true, taskId });
   } catch (err: any) {
