@@ -47,7 +47,8 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
         prompt,
         negative_prompt: negativePrompt,
         guidance_scale: 5,
-        num_inference_steps: 30
+        num_inference_steps: 30,
+        response_format: "b64_json"  // 确保API返回JSON格式而不是图像数据
       })
       // No timeout here, let it run
     });
