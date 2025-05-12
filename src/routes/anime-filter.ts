@@ -53,25 +53,48 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     });
 
     const contentType = segmindRes.headers.get('content-type') || '';
-    let responseBodyText: string | null = null; 
+    let responseBodyText: string | null = null;
+    let isJson = false;
+
+    try {
+      responseBodyText = await segmindRes.text(); // **始终先获取文本**
+      isJson = contentType.includes('application/json');
+    } catch (readError: any) {
+      // 如果连读取响应体都失败了
+      console.error(`---> Task ${taskId} - Failed to read Segmind response body:`, readError);
+      throw new Error('Failed to read response from Segmind API');
+    }
 
     if (!segmindRes.ok) {
-      responseBodyText = await segmindRes.text();
       console.error(`---> Task ${taskId} - Segmind API !ok: Status ${segmindRes.status}, Body: ${responseBodyText}`);
-      throw new Error(`Segmind API error: Status ${segmindRes.status}`);
+      // 即使 !ok，也尝试从 Body 解析错误信息（如果它是 JSON 的话）
+      let detailError = `Segmind API error: Status ${segmindRes.status}`;
+      if (isJson && responseBodyText) {
+          try {
+              const parsedError = JSON.parse(responseBodyText);
+              detailError = parsedError.error || parsedError.message || detailError;
+          } catch(e) { /* ignore parse error */ }
+      }
+      throw new Error(detailError);
     }
-    if (!contentType.includes('application/json')) {
-      responseBodyText = responseBodyText ?? await segmindRes.text();
+
+    if (!isJson) {
       console.error(`---> Task ${taskId} - Segmind API non-JSON: Content-Type: ${contentType}, Body: ${responseBodyText}`);
       throw new Error('Segmind API did not return JSON');
     }
 
-    responseBodyText = responseBodyText ?? await segmindRes.text();
-    const result = JSON.parse(responseBodyText) as { image?: string };
-
+    // **现在确定是 JSON，可以安全解析**
+    let result: any;
+    try {
+        result = JSON.parse(responseBodyText); // 使用已获取的文本
+    } catch (parseError: any) {
+        console.error(`---> Task ${taskId} - Failed to parse Segmind JSON response: ${responseBodyText}`, parseError);
+        throw new Error('Failed to parse JSON response from Segmind API');
+    }
+    
     if (!result.image) {
       console.error(`---> Task ${taskId} - Segmind API JSON missing image field. Body: ${responseBodyText}`);
-      throw new Error('Segmind API did not return image');
+      throw new Error('Segmind API did not return image field');
     }
 
     // Update task status to success
@@ -79,7 +102,8 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     console.log(`Task ${taskId} completed successfully.`);
 
   } catch (err: any) {
-    console.error(`---> Task ${taskId} processing failed:`, err);
+    // Log the caught error before updating status
+    console.error(`---> Task ${taskId} processing failed (outer catch):`, err);
     tasks[taskId] = { status: 'failed', error: err.message || 'Server error' };
   }
 };
