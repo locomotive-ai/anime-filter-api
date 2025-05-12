@@ -41,57 +41,41 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
         negative_prompt: negativePrompt,
         guidance_scale: 5,
         num_inference_steps: 30,
-        response_format: "url"  // 使用url替代b64_json，更稳定
+        response_format: "url" // <- 重点修改
       })
     });
 
     const contentType = segmindRes.headers.get('content-type') || '';
     const responseBodyText = await segmindRes.text();
-    const isJson = contentType.includes('application/json');
 
     if (!segmindRes.ok) {
-      console.error(`---> Task ${taskId} - API Error: ${segmindRes.status}, Body: ${responseBodyText}`);
-      let detailError = `Segmind API error: ${segmindRes.status}`;
-      if (isJson) {
-        try {
-          const parsed = JSON.parse(responseBodyText);
-          detailError = parsed.error || parsed.message || detailError;
-        } catch { }
-      }
-      throw new Error(detailError);
+      console.error(`Task ${taskId} - Segmind API !ok: ${segmindRes.status}`, responseBodyText);
+      throw new Error(`Segmind API error: ${segmindRes.status}`);
     }
 
-    if (!isJson) {
-      console.error(`🚨 Task ${taskId} - Content-Type: ${contentType}`);
-      console.error(`🚨 Task ${taskId} - Body (truncated): ${responseBodyText.slice(0, 500)}...`);
-      
-      // 检测是否返回了HTML错误页面
-      if (responseBodyText.includes('<html')) {
-        console.error(`🔴 HTML error response received from Segmind! Possible 502/503 error or rate limit`);
-      }
-      
-      throw new Error(`Segmind API did not return JSON (Content-Type: ${contentType})`);
+    if (!contentType.includes('application/json')) {
+      console.error(`Task ${taskId} - Unexpected content-type: ${contentType}`, responseBodyText);
+      throw new Error(`Segmind API did not return JSON (got ${contentType})`);
     }
 
     let result: any;
     try {
       result = JSON.parse(responseBodyText);
     } catch (e) {
-      console.error(`---> Task ${taskId} - JSON parse failed. Body: ${responseBodyText}`, e);
-      throw new Error('Failed to parse JSON response from Segmind');
+      console.error(`Task ${taskId} - Failed to parse JSON:`, responseBodyText);
+      throw new Error('Failed to parse JSON from Segmind');
     }
 
-    if (!result.images || !Array.isArray(result.images) || !result.images[0]?.url) {
-      console.error(`---> Task ${taskId} - Missing image URL. Body: ${responseBodyText}`);
-      throw new Error('Segmind API JSON did not contain valid image URL');
+    const url = result.images?.[0]?.url;
+    if (!url) {
+      console.error(`Task ${taskId} - Missing image URL in response:`, result);
+      throw new Error('Segmind API JSON missing image URL');
     }
 
-    // 直接使用返回的URL
-    const resultImageUrl = result.images[0].url;
-    tasks[taskId] = { status: 'success', imageUrl: resultImageUrl };
-    console.log(`Task ${taskId} completed successfully.`);
+    tasks[taskId] = { status: 'success', imageUrl: url };
+    console.log(`Task ${taskId} completed successfully`);
   } catch (err: any) {
-    console.error(`---> Task ${taskId} failed:`, err);
+    console.error(`Task ${taskId} failed:`, err);
     tasks[taskId] = { status: 'failed', error: err.message || 'Server error' };
   }
 };
@@ -108,7 +92,7 @@ router.post('/start-task', async (req: any, res: any) => {
     }
 
     const taskId = uuidv4();
-    processImageWithSegmind(taskId, imageUrl, style);
+    processImageWithSegmind(taskId, imageUrl, style); // async task
 
     return res.json({ success: true, taskId });
   } catch (err: any) {
