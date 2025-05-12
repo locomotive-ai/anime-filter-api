@@ -41,7 +41,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
         negative_prompt: negativePrompt,
         guidance_scale: 5,
         num_inference_steps: 30,
-        response_format: "b64_json"
+        response_format: "url"  // 使用url替代b64_json，更稳定
       })
     });
 
@@ -62,8 +62,15 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     }
 
     if (!isJson) {
-      console.error(`---> Task ${taskId} - Non-JSON response. Content-Type: ${contentType}, Body: ${responseBodyText}`);
-      throw new Error('Segmind API did not return JSON');
+      console.error(`🚨 Task ${taskId} - Content-Type: ${contentType}`);
+      console.error(`🚨 Task ${taskId} - Body (truncated): ${responseBodyText.slice(0, 500)}...`);
+      
+      // 检测是否返回了HTML错误页面
+      if (responseBodyText.includes('<html')) {
+        console.error(`🔴 HTML error response received from Segmind! Possible 502/503 error or rate limit`);
+      }
+      
+      throw new Error(`Segmind API did not return JSON (Content-Type: ${contentType})`);
     }
 
     let result: any;
@@ -74,13 +81,14 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
       throw new Error('Failed to parse JSON response from Segmind');
     }
 
-    if (!result.images || !Array.isArray(result.images) || !result.images[0]?.b64_json) {
-      console.error(`---> Task ${taskId} - Missing b64_json image. Body: ${responseBodyText}`);
-      throw new Error('Segmind API JSON did not contain valid image base64');
+    if (!result.images || !Array.isArray(result.images) || !result.images[0]?.url) {
+      console.error(`---> Task ${taskId} - Missing image URL. Body: ${responseBodyText}`);
+      throw new Error('Segmind API JSON did not contain valid image URL');
     }
 
-    const base64Data = result.images[0].b64_json;
-    tasks[taskId] = { status: 'success', imageUrl: `data:image/png;base64,${base64Data}` };
+    // 直接使用返回的URL
+    const resultImageUrl = result.images[0].url;
+    tasks[taskId] = { status: 'success', imageUrl: resultImageUrl };
     console.log(`Task ${taskId} completed successfully.`);
   } catch (err: any) {
     console.error(`---> Task ${taskId} failed:`, err);
