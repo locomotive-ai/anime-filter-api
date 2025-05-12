@@ -29,24 +29,31 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
       throw new Error('SEGMIND_API_KEY is not set');
     }
 
+    const requestBody = {
+      image_urls: [imageUrl],
+      prompt,
+      negative_prompt: negativePrompt,
+      guidance_scale: 5,
+      num_inference_steps: 30,
+      response_format: "url"
+    };
+
+    console.log(`[Segmind][Task ${taskId}] Request body:`, JSON.stringify(requestBody, null, 2));
+
     const segmindRes = await fetch('https://api.segmind.com/v1/gpt-image-1-edit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${segmindApiKey}`
       },
-      body: JSON.stringify({
-        image_urls: [imageUrl],
-        prompt,
-        negative_prompt: negativePrompt,
-        guidance_scale: 5,
-        num_inference_steps: 30,
-        response_format: "url" // 返回 JSON 格式
-      })
+      body: JSON.stringify(requestBody)
     });
 
     const contentType = segmindRes.headers.get('content-type') || '';
     const responseBodyText = await segmindRes.text();
+
+    console.log(`[Segmind][Task ${taskId}] Response Content-Type: ${contentType}`);
+    console.log(`[Segmind][Task ${taskId}] Response body:`, responseBodyText.slice(0, 500));
 
     if (!segmindRes.ok) {
       console.error(`Task ${taskId} - Segmind API !ok: ${segmindRes.status}`, responseBodyText);
@@ -58,7 +65,6 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
       throw new Error(`Segmind API did not return JSON (got ${contentType})`);
     }
 
-    // ✅ 正确解析 JSON + 类型断言
     const result = (JSON.parse(responseBodyText)) as { images?: { url?: string }[] };
     const url = result.images?.[0]?.url;
 
@@ -87,7 +93,7 @@ router.post('/start-task', async (req: any, res: any) => {
     }
 
     const taskId = uuidv4();
-    processImageWithSegmind(taskId, imageUrl, style); // 异步启动
+    processImageWithSegmind(taskId, imageUrl, style);
 
     return res.json({ success: true, taskId });
   } catch (err: any) {
