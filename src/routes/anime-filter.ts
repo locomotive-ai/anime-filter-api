@@ -55,8 +55,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
         size: "auto",
         quality: "auto",
         background: "opaque",
-        output_compression: 100,
-        output_format: "png"
+        output_compression: 100
       })
     });
 
