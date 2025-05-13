@@ -52,10 +52,11 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
       body: JSON.stringify({
         image_urls: [imageUrl],
         prompt,
-        negative_prompt: negativePrompt,
-        guidance_scale: 5,
-        num_inference_steps: 30
-        // 不要加 response_format
+        size: "auto",
+        quality: "auto",
+        background: "opaque",
+        output_compression: 100,
+        output_format: "png"
       })
     });
 
