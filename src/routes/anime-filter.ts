@@ -11,18 +11,32 @@ interface Task {
 }
 const tasks: { [key: string]: Task } = {};
 
-const SUPPORTED_STYLES = ['ghibli'];
+const SUPPORTED_STYLES = ['ghibli', 'family_guy', 'southpark', 'simpsons'];
 
 const processImageWithSegmind = async (taskId: string, imageUrl: string, style: string) => {
   try {
     tasks[taskId] = { status: 'pending' };
 
     if (!SUPPORTED_STYLES.includes(style)) {
-      throw new Error('Only ghibli style is supported');
+      throw new Error(`Style not supported. Supported styles: ${SUPPORTED_STYLES.join(', ')}`);
     }
 
-    const prompt = "Ghibli studio style";
+    // 根据风格选择不同的提示词
+    let prompt;
     const negativePrompt = "blurry, ugly, bad quality, extra limbs, deformed face";
+
+    if (style === 'ghibli') {
+      prompt = "Ghibli studio style";
+    } else if (style === 'family_guy') {
+      prompt = "Family Guy cartoon style, cartoon animation style";
+    } else if (style === 'southpark') {
+      prompt = "South Park cartoon style, flat color paper cutout animation style";
+    } else if (style === 'simpsons') {
+      prompt = "The Simpsons cartoon style, yellow skin, animation style";
+    } else {
+      // 添加兜底处理，虽然前面已经检查过，但为了逻辑的完整性还是加上
+      throw new Error(`Unsupported style: ${style}`);
+    }
 
     const segmindApiKey = process.env.SEGMIND_API_KEY;
     if (!segmindApiKey) {
@@ -94,7 +108,10 @@ router.post('/start-task', async (req: any, res: any) => {
       return res.status(400).json({ success: false, error: 'Invalid imageUrl parameter' });
     }
     if (!style || !SUPPORTED_STYLES.includes(style)) {
-      return res.status(400).json({ success: false, error: 'Only ghibli style is supported' });
+      return res.status(400).json({ 
+        success: false, 
+        error: `Style not supported. Supported styles: ${SUPPORTED_STYLES.join(', ')}` 
+      });
     }
 
     const taskId = uuidv4();
