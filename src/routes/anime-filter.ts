@@ -21,7 +21,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
       throw new Error('Only ghibli style is supported');
     }
 
-    const prompt = "Ghibli anime style, cinematic lighting, expressive face, digital painting";
+    const prompt = "Ghibli studio style";
     const negativePrompt = "blurry, ugly, bad quality, extra limbs, deformed face";
 
     const segmindApiKey = process.env.SEGMIND_API_KEY;
