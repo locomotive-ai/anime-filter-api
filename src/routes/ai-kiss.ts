@@ -1,5 +1,6 @@
 import express from 'express';
 import fetch from 'node-fetch';
+import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
@@ -48,11 +49,18 @@ const uploadToCloudinary = (buffer: Buffer): Promise<string> => {
   });
 };
 
+const fetchImageAsBase64 = async (url: string): Promise<string> => {
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
+  const arrayBuffer = response.data as ArrayBuffer;
+  const buffer = Buffer.from(new Uint8Array(arrayBuffer));
+  return buffer.toString('base64');
+};
+
 const processImagesWithSegmind = async (taskId: string, firstImageUrl: string, secondImageUrl: string, mode: string, duration: number) => {
   try {
     tasks[taskId] = { 
       status: 'pending',
-      createdAt: Date.now() // 记录创建时间
+      createdAt: Date.now()
     };
 
     if (!SUPPORTED_MODES.includes(mode)) {
@@ -68,34 +76,33 @@ const processImagesWithSegmind = async (taskId: string, firstImageUrl: string, s
       throw new Error('SEGMIND_API_KEY is not set');
     }
 
-    // 获取第一张图片的base64
-    const firstImageResponse = await fetch(firstImageUrl);
-    if (!firstImageResponse.ok) {
-      throw new Error(`Failed to fetch first image: ${firstImageResponse.status}`);
-    }
-    const firstImageBuffer = await firstImageResponse.buffer();
-    const firstImageBase64 = firstImageBuffer.toString('base64');
+    // 使用新的方法获取base64
+    console.log('>>> Fetching first image...');
+    const firstImageBase64 = await fetchImageAsBase64(firstImageUrl);
+    console.log('>>> Fetching second image...');
+    const secondImageBase64 = await fetchImageAsBase64(secondImageUrl);
 
-    // 获取第二张图片的base64
-    const secondImageResponse = await fetch(secondImageUrl);
-    if (!secondImageResponse.ok) {
-      throw new Error(`Failed to fetch second image: ${secondImageResponse.status}`);
-    }
-    const secondImageBuffer = await secondImageResponse.buffer();
-    const secondImageBase64 = secondImageBuffer.toString('base64');
+    // 打印调试信息
+    console.log('>>> Segmind payload:', {
+      first_reference_image: firstImageBase64.slice(0, 30) + '...',
+      second_reference_image: secondImageBase64.slice(0, 30) + '...',
+      mode,
+      duration: Number(duration)
+    });
 
     // 调用Segmind API
     const segmindRes = await fetch('https://api.segmind.com/v1/kling-kiss', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'x-api-key': segmindApiKey
       },
       body: JSON.stringify({
         first_reference_image: firstImageBase64,
         second_reference_image: secondImageBase64,
         mode: mode,
-        duration: duration // 直接使用数字类型
+        duration: Number(duration)
       })
     });
 
