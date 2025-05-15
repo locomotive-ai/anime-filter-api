@@ -219,28 +219,51 @@ router.post('/start-task', async (req: any, res: any) => {
   }
 });
 
-router.get('/task-status/:taskId', (req: any, res: any) => {
+router.get('/status/:taskId', (req: any, res: any) => {
   const { taskId } = req.params;
   const task = tasks[taskId];
   
   if (!task) {
-    return res.status(404).json({ success: false, error: 'Task not found' });
+    return res.status(404).json({ success: false, status: 'not_found', error: 'Task not found or expired' });
   }
   
-  // 清理过期任务
-  const now = Date.now();
-  for (const [id, task] of Object.entries(tasks)) {
-    if (now - task.createdAt > 24 * 60 * 60 * 1000) { // 24小时后清理
-      delete tasks[id];
-    }
+  if (task.status === 'success') {
+    return res.json({
+      success: true,
+      status: 'success',
+      videoUrl: task.videoUrl,
+      processTime: Date.now() - task.createdAt
+    });
+  } else if (task.status === 'failed') {
+    return res.status(500).json({
+      success: false,
+      status: 'failed',
+      error: task.error,
+      processTime: Date.now() - task.createdAt
+    });
+  } else {
+    return res.json({
+      success: false,
+      status: 'pending',
+      waitTime: Date.now() - task.createdAt
+    });
   }
-  
-  res.json({
-    success: true,
-    status: task.status,
-    ...(task.videoUrl && { videoUrl: task.videoUrl }),
-    ...(task.error && { error: task.error })
-  });
 });
+
+// 每 2 小时清理一次过期任务
+setInterval(() => {
+  const now = Date.now();
+  const cutoff = now - 2 * 60 * 60 * 1000;
+  let count = 0;
+  Object.entries(tasks).forEach(([id, task]) => {
+    if (task.createdAt < cutoff) {
+      delete tasks[id];
+      count++;
+    }
+  });
+  if (count > 0) {
+    console.log(`[AI Hug] Cleaned ${count} expired tasks`);
+  }
+}, 30 * 60 * 1000); // 每 30 分钟执行一次
 
 export default router; 
