@@ -59,7 +59,7 @@ const fetchImageAsBase64 = async (url: string): Promise<string> => {
 };
 
 // 处理图片并调用Segmind API
-const processImageWithSegmind = async (taskId: string, imageUrl: string, duration: number, quality: string, seed?: number, style?: string) => {
+const processImageWithSegmind = async (taskId: string, imageUrl: string, duration: number, quality: string, seed: number = 56698) => {
   try {
     tasks[taskId] = { 
       status: 'pending',
@@ -72,10 +72,6 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
 
     if (!SUPPORTED_QUALITIES.includes(quality)) {
       throw new Error(`Quality not supported. Supported qualities: ${SUPPORTED_QUALITIES.join(', ')}`);
-    }
-
-    if (style && !SUPPORTED_STYLES.includes(style)) {
-      throw new Error(`Style not supported. Supported styles: ${SUPPORTED_STYLES.join(', ')}`);
     }
 
     const segmindApiKey = process.env.SEGMIND_API_KEY;
@@ -92,18 +88,9 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
       image_url: imageUrl,
       duration: Number(duration),
       quality: quality,
-      prompt: "Generate a video of Jesus hugging the person in the image"
+      prompt: "Generate a video of Jesus hugging the person in the image",
+      seed: seed
     };
-
-    // 如果指定了种子值，则添加参数
-    if (seed && !isNaN(seed)) {
-      requestData.seed = seed;
-    }
-
-    // 如果指定了风格，则添加参数 - 默认不指定风格，让API使用默认值
-    if (style && style !== 'realistic') {
-      requestData.style = style;
-    }
 
     // 调试信息
     console.log('>>> Segmind payload:', {
@@ -197,7 +184,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
 // 启动任务的路由
 router.post('/start-task', async (req: any, res: any) => {
   try {
-    const { imageUrl, duration = 5, quality = '540p', seed, style } = req.body;
+    const { imageUrl, duration = 5, quality = '540p', seed = 56698 } = req.body;
     
     // 转换duration为数字
     const durationNum = Number(duration);
@@ -227,15 +214,8 @@ router.post('/start-task', async (req: any, res: any) => {
       });
     }
 
-    if (style && !SUPPORTED_STYLES.includes(style)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Style not supported. Supported styles: ${SUPPORTED_STYLES.join(', ')}` 
-      });
-    }
-
     const taskId = uuidv4();
-    processImageWithSegmind(taskId, imageUrl, durationNum, quality, seed, style);
+    processImageWithSegmind(taskId, imageUrl, durationNum, quality, seed);
     return res.json({ success: true, taskId });
 
   } catch (err: any) {
