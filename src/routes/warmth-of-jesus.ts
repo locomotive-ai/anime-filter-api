@@ -91,7 +91,8 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
     const requestData: Record<string, any> = {
       image_url: imageUrl,
       duration: Number(duration),
-      quality: quality
+      quality: quality,
+      prompt: "Generate a video of Jesus hugging the person in the image"
     };
 
     // 如果指定了种子值，则添加参数
