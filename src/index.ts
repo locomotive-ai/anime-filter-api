@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import animeFilterRouter from './routes/anime-filter';
 import aiKissRouter from './routes/ai-kiss';
 import aiHugRouter from './routes/ai-hug'; 
+import warmthOfJesusRouter from './routes/warmth-of-jesus';
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 app.use('/api/anime-filter', animeFilterRouter);
 app.use('/api/ai-kiss', aiKissRouter);
 app.use('/api/ai-hug', aiHugRouter); 
+app.use('/api/warmth-of-jesus', warmthOfJesusRouter);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
