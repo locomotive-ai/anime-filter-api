@@ -25,7 +25,7 @@ const tasks: { [key: string]: Task } = {};
 
 const SUPPORTED_DURATIONS = [5, 8];
 const SUPPORTED_QUALITIES = ['360p', '540p', '720p', '1080p'];
-const SUPPORTED_STYLES = ['anime', '3d_animation', 'clay', 'comic', 'cyberpunk'];
+const SUPPORTED_STYLES = ['anime', '3d_animation', 'clay', 'comic', 'cyberpunk', 'realistic'];
 
 // 上传视频到Cloudinary
 const uploadToCloudinary = (buffer: Buffer): Promise<string> => {
@@ -59,7 +59,7 @@ const fetchImageAsBase64 = async (url: string): Promise<string> => {
 };
 
 // 处理图片并调用Segmind API
-const processImageWithSegmind = async (taskId: string, imageUrl: string, duration: number, quality: string, seed?: number, style: string = 'anime') => {
+const processImageWithSegmind = async (taskId: string, imageUrl: string, duration: number, quality: string, seed?: number, style?: string) => {
   try {
     tasks[taskId] = { 
       status: 'pending',
@@ -74,7 +74,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
       throw new Error(`Quality not supported. Supported qualities: ${SUPPORTED_QUALITIES.join(', ')}`);
     }
 
-    if (!SUPPORTED_STYLES.includes(style)) {
+    if (style && !SUPPORTED_STYLES.includes(style)) {
       throw new Error(`Style not supported. Supported styles: ${SUPPORTED_STYLES.join(', ')}`);
     }
 
@@ -91,8 +91,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
     const requestData: Record<string, any> = {
       image_url: imageUrl,
       duration: Number(duration),
-      quality: quality,
-      prompt: "Generate a video of Jesus hugging the person in the image"
+      quality: quality
     };
 
     // 如果指定了种子值，则添加参数
@@ -100,8 +99,8 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
       requestData.seed = seed;
     }
 
-    // 如果指定了风格，则添加参数
-    if (style) {
+    // 如果指定了风格，则添加参数 - 默认不指定风格，让API使用默认值
+    if (style && style !== 'realistic') {
       requestData.style = style;
     }
 
@@ -197,7 +196,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, duratio
 // 启动任务的路由
 router.post('/start-task', async (req: any, res: any) => {
   try {
-    const { imageUrl, duration = 5, quality = '540p', seed, style = 'anime' } = req.body;
+    const { imageUrl, duration = 5, quality = '540p', seed, style } = req.body;
     
     // 转换duration为数字
     const durationNum = Number(duration);
