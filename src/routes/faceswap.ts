@@ -68,6 +68,22 @@ const processWithSegmind = async (taskId: string, sourceImageUrl: string, videoU
     // Fetch and convert source image to base64
     console.log('>>> Fetching source image...');
     const sourceImageBase64 = await fetchImageAsBase64(sourceImageUrl);
+    console.log('>>> Source image fetched successfully, length:', sourceImageBase64.length);
+
+    // 打印视频URL信息
+    console.log('>>> Video URL:', videoUrl);
+    
+    try {
+      // 验证视频URL是否可访问
+      const videoCheckResponse = await fetch(videoUrl, { method: 'HEAD' });
+      console.log('>>> Video URL check status:', videoCheckResponse.status);
+      if (!videoCheckResponse.ok) {
+        throw new Error(`Video URL is not accessible, status: ${videoCheckResponse.status}`);
+      }
+    } catch (videoCheckError) {
+      console.error('>>> Video URL check failed:', videoCheckError);
+      // 继续处理，但记录错误
+    }
 
     // Default videoFaceswap settings
     const data = {
@@ -86,45 +102,69 @@ const processWithSegmind = async (taskId: string, sourceImageUrl: string, videoU
 
     // Debug info
     console.log('>>> Segmind request payload structure:', Object.keys(data));
+    console.log('>>> API Key length:', segmindApiKey.length);
 
     // Call Segmind API
+    console.log('>>> Calling Segmind API...');
     const segmindRes = await fetch('https://api.segmind.com/v1/videofaceswap', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'Accept': 'application/json, video/mp4',
         'x-api-key': segmindApiKey
       },
       body: JSON.stringify(data)
     });
 
+    // 记录响应状态和头信息
+    console.log('>>> Segmind API response status:', segmindRes.status);
+    console.log('>>> Segmind API response headers:', 
+      Object.fromEntries([...segmindRes.headers.entries()]));
+
     if (!segmindRes.ok) {
       const errorText = await segmindRes.text();
       console.error(`Segmind API error (${segmindRes.status}):`, errorText);
-      throw new Error(`Segmind API error: ${segmindRes.status}`);
+      
+      try {
+        // 尝试解析JSON错误
+        const errorJson = JSON.parse(errorText);
+        console.error('>>> Parsed error JSON:', errorJson);
+        
+        throw new Error(
+          `Segmind API error: ${errorJson.error || errorJson.message || segmindRes.status}`
+        );
+      } catch (parseError) {
+        // 如果无法解析为JSON，则使用原始错误文本
+        throw new Error(`Segmind API error: ${errorText.substring(0, 200)}`);
+      }
     }
 
     // Process response
     const contentType = segmindRes.headers.get('content-type') || '';
+    console.log('>>> Response content type:', contentType);
     
     if (contentType.includes('image/jpeg') || contentType.includes('video/mp4')) {
+      console.log('>>> Received binary response (image/video)');
       // Get video/image data
       const arrayBuffer = await segmindRes.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+      console.log('>>> Response buffer size:', buffer.length);
       
       try {
         // Upload to Cloudinary
+        console.log('>>> Uploading to Cloudinary...');
         const cloudinaryUrl = await uploadToCloudinary(buffer);
         tasks[taskId] = { 
           status: 'success', 
           videoUrl: cloudinaryUrl,
           createdAt: tasks[taskId].createdAt
         };
-        console.log(`Task ${taskId} completed: Video uploaded to Cloudinary`);
+        console.log(`Task ${taskId} completed: Video uploaded to Cloudinary at ${cloudinaryUrl}`);
       } catch (cloudinaryError: any) {
         console.error(`Cloudinary upload error:`, cloudinaryError);
         
         // Fallback to base64 (not recommended but as a temporary solution)
+        console.log('>>> Falling back to base64 encoding...');
         const base64 = buffer.toString('base64');
         const dataUrl = `data:${contentType};base64,${base64}`;
         tasks[taskId] = { 
@@ -139,7 +179,19 @@ const processWithSegmind = async (taskId: string, sourceImageUrl: string, videoU
 
     // If JSON response
     if (contentType.includes('application/json')) {
-      const result = (await segmindRes.json()) as { video?: { url?: string }[] };
+      console.log('>>> Received JSON response');
+      const responseText = await segmindRes.text();
+      console.log('>>> Response text:', responseText.substring(0, 200) + '...');
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('>>> Parsed JSON result:', result);
+      } catch (parseError) {
+        console.error('>>> Failed to parse JSON response:', parseError);
+        throw new Error('Failed to parse JSON response');
+      }
+      
       const url = result.video?.[0]?.url;
 
       if (!url) {
@@ -152,13 +204,14 @@ const processWithSegmind = async (taskId: string, sourceImageUrl: string, videoU
         videoUrl: url,
         createdAt: tasks[taskId].createdAt
       };
-      console.log(`Task ${taskId} completed successfully with URL`);
+      console.log(`Task ${taskId} completed successfully with URL: ${url}`);
       return;
     }
 
     // If other type
     const fallback = await segmindRes.text();
-    throw new Error(`Unsupported content type: ${contentType}\nBody: ${fallback}`);
+    console.error('>>> Unexpected content type. Response body:', fallback.substring(0, 200) + '...');
+    throw new Error(`Unsupported content type: ${contentType}`);
 
   } catch (err: any) {
     console.error(`Task ${taskId} failed:`, err);
