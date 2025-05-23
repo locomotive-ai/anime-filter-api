@@ -4,6 +4,7 @@ import animeFilterRouter from './routes/anime-filter';
 import aiKissRouter from './routes/ai-kiss';
 import aiHugRouter from './routes/ai-hug'; 
 import warmthOfJesusRouter from './routes/warmth-of-jesus';
+import muscleSurgeRouter from './routes/muscle-surge';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use('/api/anime-filter', animeFilterRouter);
 app.use('/api/ai-kiss', aiKissRouter);
 app.use('/api/ai-hug', aiHugRouter); 
 app.use('/api/warmth-of-jesus', warmthOfJesusRouter);
+app.use('/api/muscle-surge', muscleSurgeRouter);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
