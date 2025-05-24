@@ -147,17 +147,27 @@ const processVideoFaceSwapWithSegmind = async (
 
     // Print debug info
     console.log('>>> Segmind payload:', {
-      source_image: sourceImageBase64.slice(0, 30) + '...',
+      source_image: sourceImageBase64.slice(0, 30) + '...(' + sourceImageBase64.length + ' chars)',
       target: targetVideoUrl,
       pixel_boost: pixelBoost,
       face_selector_mode: faceSelectorMode,
       face_selector_order: faceSelectorOrder,
+      face_selector_gender: "none",
+      face_selector_race: "none",
       face_selector_age_start: faceSelectorAgeStart,
       face_selector_age_end: faceSelectorAgeEnd,
       reference_face_distance: referenceFaceDistance,
       reference_frame_number: referenceFrameNumber,
       base64: false
     });
+    
+    // Validate base64 format
+    if (!sourceImageBase64 || sourceImageBase64.length < 100) {
+      throw new Error('Source image base64 is too short or empty');
+    }
+    if (!/^[A-Za-z0-9+/]+(=*)$/.test(sourceImageBase64)) {
+      throw new Error('Source image base64 contains invalid characters');
+    }
 
     // Call Segmind API
     const segmindRes = await fetch('https://api.segmind.com/v1/ai-face-swap', {
