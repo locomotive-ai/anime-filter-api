@@ -6,6 +6,7 @@ import aiHugRouter from './routes/ai-hug';
 import warmthOfJesusRouter from './routes/warmth-of-jesus';
 import muscleSurgeRouter from './routes/muscle-surge';
 import jellycatEffectRouter from './routes/jellycat-effect';
+import videoFaceSwapRouter from './routes/video-face-swap';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use('/api/ai-hug', aiHugRouter);
 app.use('/api/warmth-of-jesus', warmthOfJesusRouter);
 app.use('/api/muscle-surge', muscleSurgeRouter);
 app.use('/api/jellycat-effect', jellycatEffectRouter);
+app.use('/api/video-face-swap', videoFaceSwapRouter);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
