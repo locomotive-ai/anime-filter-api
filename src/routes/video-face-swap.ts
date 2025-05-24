@@ -69,10 +69,27 @@ const uploadToCloudinary = (buffer: Buffer): Promise<string> => {
 };
 
 const fetchImageAsBase64 = async (url: string): Promise<string> => {
-  const response = await axios.get(url, { responseType: 'arraybuffer' });
-  const arrayBuffer = response.data as ArrayBuffer;
-  const buffer = Buffer.from(new Uint8Array(arrayBuffer));
-  return buffer.toString('base64');
+  try {
+    console.log(`Fetching image from: ${url}`);
+    const response = await axios.get(url, { 
+      responseType: 'arraybuffer',
+      timeout: 30000 // 30 seconds timeout
+    });
+    
+    const arrayBuffer = response.data as ArrayBuffer;
+    const buffer = Buffer.from(new Uint8Array(arrayBuffer));
+    const base64 = buffer.toString('base64');
+    
+    // Get content type from response headers
+    const contentType = response.headers['content-type'] || 'image/jpeg';
+    console.log(`Image fetched successfully, size: ${buffer.length} bytes, type: ${contentType}`);
+    
+    // Return base64 with data URL prefix for validation
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    throw new Error(`Failed to fetch source image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 const processVideoFaceSwapWithSegmind = async (
@@ -100,15 +117,27 @@ const processVideoFaceSwapWithSegmind = async (
 
     // Fetch source image as base64
     console.log('>>> Fetching source image...');
-    const sourceImageBase64 = await fetchImageAsBase64(sourceImageUrl);
+    const sourceImageWithDataUrl = await fetchImageAsBase64(sourceImageUrl);
+    
+    // Extract just the base64 part (remove data:image/...;base64, prefix)
+    const base64Match = sourceImageWithDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!base64Match) {
+      throw new Error('Invalid base64 format for source image');
+    }
+    const sourceImageBase64 = base64Match[2];
+    const imageType = base64Match[1];
+    
+    console.log(`Source image type: ${imageType}, base64 length: ${sourceImageBase64.length}`);
 
     // Prepare the payload for Segmind AI Face Swap API
     const payload = {
-      source_image: sourceImageBase64,
+      source_image: sourceImageBase64, // Just base64 without data URL prefix
       target: targetVideoUrl, // URL for target video
       pixel_boost: pixelBoost,
       face_selector_mode: faceSelectorMode,
       face_selector_order: faceSelectorOrder,
+      face_selector_gender: "none", // Default to no gender filter
+      face_selector_race: "none", // Default to no race filter
       face_selector_age_start: faceSelectorAgeStart,
       face_selector_age_end: faceSelectorAgeEnd,
       reference_face_distance: referenceFaceDistance,
@@ -144,7 +173,20 @@ const processVideoFaceSwapWithSegmind = async (
     if (!segmindRes.ok) {
       const errorText = await segmindRes.text();
       console.error(`Segmind API error (${segmindRes.status}):`, errorText);
-      throw new Error(`Segmind API error: ${segmindRes.status}`);
+      
+      // Try to parse error message
+      let errorMessage = `Segmind API error (${segmindRes.status})`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMessage = errorJson.error;
+        }
+      } catch (e) {
+        console.log('Could not parse error as JSON, using raw text');
+        errorMessage = errorText || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
     }
 
     // Handle returned video data
