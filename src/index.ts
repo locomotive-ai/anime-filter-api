@@ -7,6 +7,7 @@ import warmthOfJesusRouter from './routes/warmth-of-jesus';
 import muscleSurgeRouter from './routes/muscle-surge';
 import jellycatEffectRouter from './routes/jellycat-effect';
 import videoFaceSwapRouter from './routes/video-face-swap';
+import musicGeneratorRouter from './routes/music-generator';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use('/api/warmth-of-jesus', warmthOfJesusRouter);
 app.use('/api/muscle-surge', muscleSurgeRouter);
 app.use('/api/jellycat-effect', jellycatEffectRouter);
 app.use('/api/video-face-swap', videoFaceSwapRouter);
+app.use('/api/music-generator', musicGeneratorRouter);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
