@@ -52,7 +52,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     } else if (style === 'animal_crossing') {
       prompt = "Animal Crossing game style, cute cartoon character, Nintendo game art style";
     } else if (style === 'jojo') {
-      prompt = "JoJo's Bizarre Adventure anime style, dramatic poses, bold lines, muscular character";
+      prompt = "JoJo anime style, dramatic art style, bold comic book lines";
     } else if (style === 'pixar') {
       prompt = "Pixar 3D animation style, Pixar movie character, 3D rendered";
     } else if (style === 'lego') {
@@ -64,7 +64,7 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     } else if (style === '3d_style') {
       prompt = "Modern 3D character style, detailed 3D rendering, high quality CGI";
     } else if (style === 'barbie') {
-      prompt = "Barbie doll style, plastic doll appearance, perfect features";
+      prompt = "Barbie doll style, plastic doll appearance, toy character";
     } else {
       // 添加兜底处理，虽然前面已经检查过，但为了逻辑的完整性还是加上
       throw new Error(`Unsupported style: ${style}`);
