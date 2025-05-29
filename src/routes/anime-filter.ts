@@ -48,11 +48,11 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
     } else if (style === 'simpsons') {
       prompt = "The Simpsons cartoon style, yellow skin, animation style";
     } else if (style === 'shinkai_makoto') {
-      prompt = "Makoto Shinkai anime style, cinematic lighting, detailed background, beautiful scenery";
+      prompt = "Makoto Shinkai anime style";
     } else if (style === 'animal_crossing') {
       prompt = "Animal Crossing game style, cute cartoon character, Nintendo game art style";
     } else if (style === 'jojo') {
-      prompt = "JoJo anime style, dramatic art style, bold comic book lines";
+      prompt = "JoJo's Bizarre Adventure style";
     } else if (style === 'pixar') {
       prompt = "Pixar 3D animation style, Pixar movie character, 3D rendered";
     } else if (style === 'lego') {
