@@ -11,7 +11,21 @@ interface Task {
 }
 const tasks: { [key: string]: Task } = {};
 
-const SUPPORTED_STYLES = ['ghibli', 'family_guy', 'southpark', 'simpsons'];
+const SUPPORTED_STYLES = [
+  'ghibli', 
+  'family_guy', 
+  'southpark', 
+  'simpsons',
+  'shinkai_makoto',
+  'animal_crossing',
+  'jojo',
+  'pixar',
+  'lego',
+  'chibi',
+  'oil_painting',
+  '3d_style',
+  'barbie'
+];
 
 const processImageWithSegmind = async (taskId: string, imageUrl: string, style: string) => {
   try {
@@ -33,6 +47,24 @@ const processImageWithSegmind = async (taskId: string, imageUrl: string, style: 
       prompt = "South Park cartoon style, flat color paper cutout animation style";
     } else if (style === 'simpsons') {
       prompt = "The Simpsons cartoon style, yellow skin, animation style";
+    } else if (style === 'shinkai_makoto') {
+      prompt = "Makoto Shinkai anime style, cinematic lighting, detailed background, beautiful scenery";
+    } else if (style === 'animal_crossing') {
+      prompt = "Animal Crossing game style, cute cartoon character, Nintendo game art style";
+    } else if (style === 'jojo') {
+      prompt = "JoJo's Bizarre Adventure anime style, dramatic poses, bold lines, muscular character";
+    } else if (style === 'pixar') {
+      prompt = "Pixar 3D animation style, Pixar movie character, 3D rendered";
+    } else if (style === 'lego') {
+      prompt = "LEGO minifigure style, plastic toy, blocky LEGO character";
+    } else if (style === 'chibi') {
+      prompt = "Chibi anime style, cute small character, big head, kawaii";
+    } else if (style === 'oil_painting') {
+      prompt = "Classical oil painting style, painterly, artistic brush strokes";
+    } else if (style === '3d_style') {
+      prompt = "Modern 3D character style, detailed 3D rendering, high quality CGI";
+    } else if (style === 'barbie') {
+      prompt = "Barbie doll style, plastic doll appearance, perfect features";
     } else {
       // 添加兜底处理，虽然前面已经检查过，但为了逻辑的完整性还是加上
       throw new Error(`Unsupported style: ${style}`);
