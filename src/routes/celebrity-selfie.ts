@@ -15,7 +15,6 @@ const SUPPORTED_CELEBRITIES = [
   'jackie_chan',
   'michael_jackson', 
   'leonardo_dicaprio',
-  'taylor_swift',
   'will_smith',
   'brad_pitt',
   'angelina_jolie',
@@ -169,10 +168,10 @@ router.post('/start-task', async (req: any, res: any) => {
     if (!imageUrl || typeof imageUrl !== 'string' || !/^https?:\/\//.test(imageUrl)) {
       return res.status(400).json({ success: false, error: 'Invalid imageUrl parameter' });
     }
-    if (!celebrity || !SUPPORTED_CELEBRITIES.includes(celebrity)) {
+    if (!celebrity || (!SUPPORTED_CELEBRITIES.includes(celebrity) && !celebrity.startsWith('custom_'))) {
       return res.status(400).json({ 
         success: false, 
-        error: `Celebrity not supported. Supported celebrities: ${SUPPORTED_CELEBRITIES.join(', ')}` 
+        error: `Celebrity not supported. Supported celebrities: ${SUPPORTED_CELEBRITIES.join(', ')} or custom celebrity names` 
       });
     }
     if (!landmark || !SUPPORTED_LANDMARKS.includes(landmark)) {
